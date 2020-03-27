@@ -9,8 +9,10 @@ import { View, FlatList, Image, Text, TouchableOpacity } from 'react-native';
 
 function Incidents() {
     const navigation = useNavigation();
+    const [page, setPage] = useState(1);
     const [total, setTotal] = useState(0);
     const [incident, setIncident] = useState([]);
+    const [loading, setLoading] = useState(false);
 
 
     function goToDetails(incident){
@@ -18,9 +20,25 @@ function Incidents() {
     };
 
     async function loadIncidents(){
-        const response = await api.get('incidents');
-        setIncident(response.data);
+        if (loading) {
+            return;
+        }
+
+        if (total>0 && incident.length===total){
+            return;
+        }   
+
+        setLoading(true);
+
+        const response = await api.get('incidents', {
+            params: { page }
+        });
+
         setTotal(response.headers['x-total-count']);
+        setIncident([...incident,...response.data]);
+        setPage(page + 1);
+
+        setLoading(false);
     };
 
     useEffect( () => {
@@ -44,6 +62,8 @@ function Incidents() {
             <FlatList 
                 data={ incident }
                 style={ styles.incidentsList }
+                onEndReached={ loadIncidents }
+                onEndReachedThreshold = { 0.2 }
                 showsVerticalScrollIndicator={false}
                 keyExtractor={ incident => String(incident.id) }
                 renderItem={ ({item: incident}) => (
